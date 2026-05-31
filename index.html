@@ -6,14 +6,15 @@
 <title>Squishy!</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
   body {
     background: #f0ebe6;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    height: 100vh; overflow: hidden;
     font-family: 'Segoe UI', sans-serif;
     user-select: none; -webkit-user-select: none;
     touch-action: none;
+    -webkit-touch-callout: none;
   }
   .select-screen { display: flex; flex-direction: column; align-items: center; gap: 30px; }
   .select-screen.hidden { display: none; }
@@ -29,26 +30,27 @@
   .select-card:active { transform: scale(0.97); }
   .card-icon { width: 80px; height: 80px; }
   .card-label { color: #6a5a4a; font-size: 15px; font-weight: 600; }
-  .game-screen { display: none; width: 100%; height: 100%; }
-  .game-screen.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
-  .title { position: fixed; top: 22px; color: #9a8878; font-size: 18px; font-weight: bold; letter-spacing: 3px; }
-  .hint { position: fixed; bottom: 28px; color: #b0a090; font-size: 13px; opacity: 0.6; }
-  .bottom-btns { position: fixed; bottom: 58px; display: flex; gap: 12px; z-index: 10; }
+  .game-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+  .game-screen.active { display: block; }
+  .title { position: fixed; top: 22px; left: 0; right: 0; text-align: center; color: #9a8878; font-size: 18px; font-weight: bold; letter-spacing: 3px; z-index: 10; pointer-events: none; }
+  .hint { position: fixed; bottom: 28px; left: 0; right: 0; text-align: center; color: #b0a090; font-size: 13px; opacity: 0.6; pointer-events: none; }
+  .bottom-btns { position: fixed; bottom: 58px; left: 0; right: 0; display: flex; justify-content: center; gap: 12px; z-index: 10; }
   .btn {
     background: #d4c4b0; border: none; padding: 10px 22px;
     border-radius: 20px; color: #5a4a3a; font-size: 13px;
     cursor: pointer; letter-spacing: 1px;
   }
   .btn:hover { background: #c4b4a0; }
-  canvas { cursor: pointer; touch-action: none; }
+  #c { position: fixed; top: 0; left: 0; width: 100%; height: 100%; cursor: pointer; touch-action: none; }
   .layer-ctrl {
-    position: fixed; top: 55px; display: flex;
+    position: fixed; top: 55px; left: 0; right: 0;
+    display: flex; justify-content: center;
     align-items: center; gap: 10px; z-index: 10;
   }
   .layer-btn {
-    width: 32px; height: 32px; border-radius: 50%;
+    width: 36px; height: 36px; border-radius: 50%;
     background: #d4c4b0; border: none; color: #5a4a3a;
-    font-size: 18px; font-weight: bold; cursor: pointer;
+    font-size: 20px; font-weight: bold; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
   }
   .layer-btn:hover { background: #c4b4a0; }
@@ -90,25 +92,28 @@
 // ============ ICONS ============
 (function() {
   const wCtx = document.getElementById('iconWakppu').getContext('2d');
-  const g1 = wCtx.createRadialGradient(30, 30, 0, 40, 40, 38);
-  g1.addColorStop(0, 'hsl(270,45%,85%)'); g1.addColorStop(1, 'hsl(285,35%,62%)');
-  wCtx.beginPath(); wCtx.arc(40, 40, 32, 0, Math.PI * 2);
-  wCtx.fillStyle = g1; wCtx.fill();
-  wCtx.beginPath(); wCtx.ellipse(32, 28, 12, 5, -0.3, 0, Math.PI * 2);
-  wCtx.fillStyle = 'rgba(255,255,255,0.35)'; wCtx.fill();
+  const g1 = wCtx.createRadialGradient(30,30,0,40,40,38);
+  g1.addColorStop(0,'hsl(270,45%,85%)'); g1.addColorStop(1,'hsl(285,35%,62%)');
+  wCtx.beginPath(); wCtx.arc(40,40,32,0,Math.PI*2); wCtx.fillStyle=g1; wCtx.fill();
+  wCtx.beginPath(); wCtx.ellipse(32,28,12,5,-0.3,0,Math.PI*2);
+  wCtx.fillStyle='rgba(255,255,255,0.35)'; wCtx.fill();
 
   const bCtx = document.getElementById('iconButter').getContext('2d');
-  const r = 6;
+  const r=6;
   bCtx.beginPath();
-  bCtx.moveTo(8+r,22); bCtx.lineTo(72-r,22); bCtx.arcTo(72,22,72,22+r,r);
-  bCtx.lineTo(72,58-r); bCtx.arcTo(72,58,72-r,58,r);
-  bCtx.lineTo(8+r,58); bCtx.arcTo(8,58,8,58-r,r);
-  bCtx.lineTo(8,22+r); bCtx.arcTo(8,22,8+r,22,r); bCtx.closePath();
-  bCtx.fillStyle = '#f8ebb5'; bCtx.fill();
-  bCtx.strokeStyle = '#d4c478'; bCtx.lineWidth = 1.5; bCtx.stroke();
-  bCtx.fillStyle = '#5a8ad4'; bCtx.font = 'bold 9px sans-serif';
-  bCtx.fillText('BUTTER', 20, 44);
+  bCtx.moveTo(8+r,22);bCtx.lineTo(72-r,22);bCtx.arcTo(72,22,72,22+r,r);
+  bCtx.lineTo(72,58-r);bCtx.arcTo(72,58,72-r,58,r);
+  bCtx.lineTo(8+r,58);bCtx.arcTo(8,58,8,58-r,r);
+  bCtx.lineTo(8,22+r);bCtx.arcTo(8,22,8+r,22,r);bCtx.closePath();
+  bCtx.fillStyle='#f8ebb5';bCtx.fill();
+  bCtx.strokeStyle='#d4c478';bCtx.lineWidth=1.5;bCtx.stroke();
+  bCtx.fillStyle='#5a8ad4';bCtx.font='bold 9px sans-serif';
+  bCtx.fillText('BUTTER',20,44);
 })();
+
+// ============ BUTTER IMAGE ============
+const butterImg = new Image();
+butterImg.src = 'butter.png';
 
 // ============ STATE ============
 let mode = '';
@@ -116,424 +121,373 @@ const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 let W, H, cx, cy;
 let pressing = false, pressX = 0, pressY = 0;
-let scaleX = 1, scaleY = 1, tSX = 1, tSY = 1;
-let shakeX = 0, shakeY = 0;
-let destroyed = false;
+let scaleX=1,scaleY=1,tSX=1,tSY=1;
+let shakeX=0,shakeY=0;
 let waxLayers = 0;
 const WAX_MAX = 10;
 
-// intensity curve: slow start → steep ramp
-// t in [0,2], returns [0,1]
 function intensityCurve(t) {
-  const n = Math.min(t / 2, 1); // normalize to 0-1
-  return Math.pow(n, 3); // cubic: 0.5s=1.5%, 1s=12.5%, 1.5s=42%, 2s=100%
+  const n = Math.min(t/2,1);
+  return Math.pow(n,3);
 }
 
-document.getElementById('layerMinus').addEventListener('click', () => {
-  if (waxLayers > 0) { waxLayers--; updateLayerUI(); resetGame(); }
+document.getElementById('layerMinus').addEventListener('click',()=>{
+  if(waxLayers>0){waxLayers--;updateLayerUI();resetGame();}
 });
-document.getElementById('layerPlus').addEventListener('click', () => {
-  if (waxLayers < WAX_MAX) { waxLayers++; updateLayerUI(); resetGame(); }
+document.getElementById('layerPlus').addEventListener('click',()=>{
+  if(waxLayers<WAX_MAX){waxLayers++;updateLayerUI();resetGame();}
 });
-function updateLayerUI() {
-  document.getElementById('layerLabel').textContent = waxLayers === 0 ? '왁스 없음' : `왁스 ${waxLayers}겹`;
+function updateLayerUI(){
+  document.getElementById('layerLabel').textContent=waxLayers===0?'왁스 없음':`왁스 ${waxLayers}겹`;
 }
 
-function startGame(m) {
-  mode = m;
+function startGame(m){
+  mode=m;
   document.getElementById('selectScreen').classList.add('hidden');
   document.getElementById('gameScreen').classList.add('active');
-  document.getElementById('gameTitle').textContent = m === 'wakppu' ? '왁뿌볼' : '버터';
-  document.getElementById('hintText').textContent = '꾹 눌러서 부숴보세요!';
+  document.getElementById('gameTitle').textContent=m==='wakppu'?'왁뿌볼':'버터';
+  document.getElementById('hintText').textContent='꾹 눌러보세요!';
   updateLayerUI();
   resize(); resetGame();
   requestAnimationFrame(loop);
 }
 
-function goBack() {
+function goBack(){
   document.getElementById('selectScreen').classList.remove('hidden');
   document.getElementById('gameScreen').classList.remove('active');
-  mode = '';
+  mode='';
 }
-document.getElementById('backBtn').addEventListener('click', goBack);
-document.getElementById('resetBtn').addEventListener('click', resetGame);
+document.getElementById('backBtn').addEventListener('click',goBack);
+document.getElementById('resetBtn').addEventListener('click',resetGame);
 
 // ============ AUDIO ============
 let audioCtx;
-function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+function initAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();}
 
-function playNoise(freq, vol, dur) {
-  if (!audioCtx) return;
-  const t = audioCtx.currentTime;
-  const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * dur, audioCtx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let j = 0; j < d.length; j++) d[j] = (Math.random() * 2 - 1) * (1 - j / d.length);
-  const src = audioCtx.createBufferSource(); src.buffer = buf;
-  const hp = audioCtx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = freq;
-  const gain = audioCtx.createGain();
-  gain.gain.setValueAtTime(vol, t); gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+function playNoise(freq,vol,dur){
+  if(!audioCtx)return;
+  const t=audioCtx.currentTime;
+  const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*dur,audioCtx.sampleRate);
+  const d=buf.getChannelData(0);
+  for(let j=0;j<d.length;j++)d[j]=(Math.random()*2-1)*(1-j/d.length);
+  const src=audioCtx.createBufferSource();src.buffer=buf;
+  const hp=audioCtx.createBiquadFilter();hp.type='highpass';hp.frequency.value=freq;
+  const gain=audioCtx.createGain();
+  gain.gain.setValueAtTime(vol,t);gain.gain.exponentialRampToValueAtTime(0.001,t+dur);
   src.connect(hp).connect(gain).connect(audioCtx.destination);
-  src.start(t); src.stop(t + dur);
+  src.start(t);src.stop(t+dur);
 }
 
-// wax crack sound - sharp, crispy
-function playCrack(intensity) {
-  if (waxLayers === 0) return; // no wax = no crack sound
-  const vol = 0.1 + (waxLayers / WAX_MAX) * 0.2;
-  const n = 2 + Math.floor(intensity * 4 * (waxLayers / WAX_MAX + 0.5));
-  for (let i = 0; i < n; i++)
-    setTimeout(() => playNoise(1500 + Math.random() * 3000, vol + intensity * 0.15, 0.01 + Math.random() * 0.03), i * 8);
+function playCrack(intensity){
+  if(waxLayers===0)return;
+  const vol=0.1+(waxLayers/WAX_MAX)*0.2;
+  const n=2+Math.floor(intensity*4*(waxLayers/WAX_MAX+0.5));
+  for(let i=0;i<n;i++)setTimeout(()=>playNoise(1500+Math.random()*3000,vol+intensity*0.15,0.01+Math.random()*0.03),i*8);
 }
 
-// soft squish sound - for no-wax or base material
-function playSquish(intensity) {
-  const n = 2 + Math.floor(intensity * 3);
-  for (let i = 0; i < n; i++)
-    setTimeout(() => playNoise(150 + Math.random() * 500, 0.06 + intensity * 0.1, 0.04 + Math.random() * 0.06), i * 20);
+function playSquish(intensity){
+  const n=2+Math.floor(intensity*3);
+  for(let i=0;i<n;i++)setTimeout(()=>playNoise(150+Math.random()*500,0.06+intensity*0.1,0.04+Math.random()*0.06),i*20);
 }
 
-function playBigCrunch() {
-  if (waxLayers > 0) for (let i = 0; i < 25; i++) setTimeout(() => playCrack(0.5 + Math.random() * 0.5), i * 12);
-  for (let i = 0; i < 10; i++) setTimeout(() => playSquish(0.5 + Math.random() * 0.5), i * 20);
-}
+// ============ CRACKS & DENTS ============
+let cracks=[], totalCracks=0;
+let dents=[], crumbs=[];
 
-// ============ CRACKS (shared - wax cracks on any object) ============
-let cracks = [], fragments = [], totalCracks = 0;
-let dents = [], crumbs = [], totalDamage = 0;
+function getR(){return Math.min(W,H)*0.22;}
+function bGetSize(){const s=Math.min(W,H);return{bw:s*0.7,bh:s*0.3,r:s*0.025};}
 
-function getR() { return Math.min(W, H) * 0.22; }
-function bGetSize() { const s = Math.min(W, H); return { bw: s * 0.65, bh: s * 0.28, r: s * 0.03 }; }
-
-function destroyThreshold() { return 8 + waxLayers * 6; }
-
-function makeCrackLine(sx, sy, angle, bounds) {
-  const pts = [{ x: sx, y: sy }];
-  let curX = sx, curY = sy, curA = angle;
-  for (let i = 0; i < 200; i++) {
-    curA += (Math.random() - 0.5) * 0.6;
-    const len = 6 + Math.random() * 4;
-    curX += Math.cos(curA) * len; curY += Math.sin(curA) * len;
-    if (bounds === 'circle') {
-      const R = getR();
-      if (curX * curX + curY * curY >= R * R * 0.97) {
-        const norm = Math.sqrt(curX * curX + curY * curY);
-        pts.push({ x: curX / norm * R * 0.98, y: curY / norm * R * 0.98 });
-        break;
+function makeCrackLine(sx,sy,angle,bounds){
+  const pts=[{x:sx,y:sy}];
+  let curX=sx,curY=sy,curA=angle;
+  for(let i=0;i<200;i++){
+    curA+=(Math.random()-0.5)*0.6;
+    const len=6+Math.random()*4;
+    curX+=Math.cos(curA)*len;curY+=Math.sin(curA)*len;
+    if(bounds==='circle'){
+      const R=getR();
+      if(curX*curX+curY*curY>=R*R*0.97){
+        const norm=Math.sqrt(curX*curX+curY*curY);
+        pts.push({x:curX/norm*R*0.98,y:curY/norm*R*0.98});break;
       }
-    } else {
-      const { bw, bh } = bGetSize();
-      const hw = bw / 2 * 0.95, hh = bh / 2 * 0.95;
-      if (Math.abs(curX) >= hw || Math.abs(curY) >= hh) {
-        curX = Math.max(-hw, Math.min(hw, curX));
-        curY = Math.max(-hh, Math.min(hh, curY));
-        pts.push({ x: curX, y: curY });
-        break;
+    }else{
+      const{bw,bh}=bGetSize();
+      const hw=bw/2*0.95,hh=bh/2*0.95;
+      if(Math.abs(curX)>=hw||Math.abs(curY)>=hh){
+        curX=Math.max(-hw,Math.min(hw,curX));
+        curY=Math.max(-hh,Math.min(hh,curY));
+        pts.push({x:curX,y:curY});break;
       }
     }
-    pts.push({ x: curX, y: curY });
+    pts.push({x:curX,y:curY});
   }
   return pts;
 }
 
-function spawnCracks(ox, oy, count, bounds) {
-  const lx = ox - cx, ly = oy - cy;
-  for (let i = 0; i < count; i++) {
-    const angle = (Math.PI * 2 / count) * i + (Math.random() - 0.5) * 0.5;
-    cracks.push({ points: makeCrackLine(lx, ly, angle, bounds), width: 1.5 + Math.random() * 1.5, appear: performance.now() });
+function spawnCracks(lx,ly,count,bounds){
+  for(let i=0;i<count;i++){
+    const angle=(Math.PI*2/count)*i+(Math.random()-0.5)*0.5;
+    cracks.push({points:makeCrackLine(lx,ly,angle,bounds),width:1.5+Math.random()*1.5,appear:performance.now()});
     totalCracks++;
-    if (Math.random() < 0.5) {
-      const pts = cracks[cracks.length - 1].points;
-      if (pts.length > 3) {
-        const fi = 1 + Math.floor(Math.random() * Math.min(4, pts.length - 2));
-        const fa = angle + (Math.random() > 0.5 ? 1 : -1) * (0.5 + Math.random() * 0.7);
-        cracks.push({ points: makeCrackLine(pts[fi].x, pts[fi].y, fa, bounds), width: 1 + Math.random(), appear: performance.now() + 30 });
+    if(Math.random()<0.5){
+      const pts=cracks[cracks.length-1].points;
+      if(pts.length>3){
+        const fi=1+Math.floor(Math.random()*Math.min(4,pts.length-2));
+        const fa=angle+(Math.random()>0.5?1:-1)*(0.5+Math.random()*0.7);
+        cracks.push({points:makeCrackLine(pts[fi].x,pts[fi].y,fa,bounds),width:1+Math.random(),appear:performance.now()+30});
         totalCracks++;
       }
     }
   }
 }
 
-function spawnDent(ox, oy) {
-  dents.push({ x: ox - cx, y: oy - cy, radius: 10 + Math.random() * 14, depth: 0.3 + Math.random() * 0.7, appear: performance.now() });
-  totalDamage += 0.08;
+function spawnDent(lx,ly){
+  dents.push({x:lx,y:ly,radius:10+Math.random()*14,depth:0.3+Math.random()*0.7,appear:performance.now()});
 }
 
-function spawnCrumbs(ox, oy, count) {
-  for (let i = 0; i < count; i++) {
-    const a = Math.random() * Math.PI * 2, sp = 1 + Math.random() * 3;
-    crumbs.push({ x: ox, y: oy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1.5, size: 2 + Math.random() * 5, rot: Math.random() * Math.PI * 2, rotSpd: (Math.random() - 0.5) * 0.2, alpha: 1 });
+function spawnCrumbs(px,py,count){
+  for(let i=0;i<count;i++){
+    const a=Math.random()*Math.PI*2,sp=1+Math.random()*3;
+    crumbs.push({x:px,y:py,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-1.5,size:2+Math.random()*5,rot:Math.random()*Math.PI*2,rotSpd:(Math.random()-0.5)*0.2,alpha:1});
   }
 }
 
-function spawnFrag(x, y, hue) {
-  const a = Math.atan2(y, x) + (Math.random() - 0.5);
-  const sp = 2 + Math.random() * 5, sz = 5 + Math.random() * 14;
-  const n = 4 + Math.floor(Math.random() * 3), pts = [];
-  for (let i = 0; i < n; i++) { const a2 = (Math.PI * 2 / n) * i + Math.random() * 0.5; pts.push({ x: Math.cos(a2) * (0.5 + Math.random() * 0.5), y: Math.sin(a2) * (0.5 + Math.random() * 0.5) }); }
-  fragments.push({ x: cx + x, y: cy + y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 3, size: sz, pts, rot: Math.random() * Math.PI * 2, rotSpd: (Math.random() - 0.5) * 0.15, alpha: 1, hue });
+// ============ INPUT (fixed for mobile sync) ============
+let pressStart=0,lastCrackIntensity=0,nextCrackThreshold=0;
+
+function getCanvasPos(e){
+  const rect = canvas.getBoundingClientRect();
+  const scX = W / rect.width;
+  const scY = H / rect.height;
+  let clientX, clientY;
+  if(e.touches){clientX=e.touches[0].clientX;clientY=e.touches[0].clientY;}
+  else{clientX=e.clientX;clientY=e.clientY;}
+  return {
+    x: (clientX - rect.left) * scX,
+    y: (clientY - rect.top) * scY
+  };
 }
 
-function destroyObj() {
-  destroyed = true; pressing = false;
-  playBigCrunch();
-  if (mode === 'wakppu') {
-    const R = getR();
-    for (let i = 0; i < 50; i++) { const a = Math.random() * Math.PI * 2, r = Math.random() * R * 0.85; spawnFrag(Math.cos(a) * r, Math.sin(a) * r, 270); }
-  } else {
-    const { bw, bh } = bGetSize();
-    for (let i = 0; i < 40; i++) spawnFrag((Math.random() - 0.5) * bw * 0.8, (Math.random() - 0.5) * bh * 0.8, 45);
-  }
-}
-
-// ============ INPUT ============
-let pressStart = 0, lastCrackIntensity = 0, nextCrackThreshold = 0;
-
-function getPos(e) { if (e.touches) return { x: e.touches[0].clientX, y: e.touches[0].clientY }; return { x: e.clientX, y: e.clientY }; }
-
-function onPress(e) {
+function onPress(e){
   e.preventDefault();
-  if (destroyed) return;
-  const p = getPos(e);
+  const p=getCanvasPos(e);
   initAudio();
-  if (mode === 'wakppu') {
-    const R = getR(); const dx = p.x - cx, dy = p.y - cy;
-    if (dx * dx + dy * dy > (R * 1.3) ** 2) return;
-  } else {
-    const { bw, bh } = bGetSize();
-    if (Math.abs(p.x - cx) > bw * 0.55 || Math.abs(p.y - cy) > bh * 0.55) return;
+  if(mode==='wakppu'){
+    const R=getR();const dx=p.x-cx,dy=p.y-cy;
+    if(dx*dx+dy*dy>(R*1.3)**2)return;
+  }else{
+    const{bw,bh}=bGetSize();
+    if(Math.abs(p.x-cx)>bw*0.55||Math.abs(p.y-cy)>bh*0.55)return;
   }
-  pressing = true; pressX = p.x; pressY = p.y;
-  pressStart = performance.now();
-  lastCrackIntensity = 0; nextCrackThreshold = 0.05;
+  pressing=true;pressX=p.x;pressY=p.y;
+  pressStart=performance.now();
+  lastCrackIntensity=0;nextCrackThreshold=0.05;
 }
 
-function onMove(e) { e.preventDefault(); if (pressing) { const p = getPos(e); pressX = p.x; pressY = p.y; } }
-function onRelease(e) { if (e) e.preventDefault(); pressing = false; tSX = 1; tSY = 1; }
+function onMove(e){e.preventDefault();if(pressing){const p=getCanvasPos(e);pressX=p.x;pressY=p.y;}}
+function onRelease(e){if(e)e.preventDefault();pressing=false;tSX=1;tSY=1;}
 
-canvas.addEventListener('mousedown', onPress); canvas.addEventListener('mousemove', onMove);
-canvas.addEventListener('mouseup', onRelease); canvas.addEventListener('mouseleave', () => { if (pressing) onRelease(); });
-canvas.addEventListener('touchstart', onPress); canvas.addEventListener('touchmove', onMove);
-canvas.addEventListener('touchend', onRelease);
+canvas.addEventListener('mousedown',onPress);canvas.addEventListener('mousemove',onMove);
+canvas.addEventListener('mouseup',onRelease);canvas.addEventListener('mouseleave',()=>{if(pressing)onRelease();});
+canvas.addEventListener('touchstart',onPress,{passive:false});
+canvas.addEventListener('touchmove',onMove,{passive:false});
+canvas.addEventListener('touchend',onRelease,{passive:false});
 
 // ============ RESET ============
-function resetGame() {
-  cracks = []; fragments = []; totalCracks = 0;
-  dents = []; crumbs = []; totalDamage = 0;
-  destroyed = false; pressing = false;
-  scaleX = 1; scaleY = 1; tSX = 1; tSY = 1;
-  shakeX = 0; shakeY = 0;
+function resetGame(){
+  cracks=[];totalCracks=0;
+  dents=[];crumbs=[];
+  pressing=false;
+  scaleX=1;scaleY=1;tSX=1;tSY=1;
+  shakeX=0;shakeY=0;
 }
 
-function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; cx = W / 2; cy = H / 2; }
+function resize(){
+  W=canvas.width=window.innerWidth;
+  H=canvas.height=window.innerHeight;
+  cx=W/2;cy=H/2;
+}
 
 // ============ UPDATE ============
-function update() {
-  if (pressing && !destroyed) {
-    const elapsed = (performance.now() - pressStart) / 1000;
-    const intensity = intensityCurve(elapsed);
-    const bounds = mode === 'wakppu' ? 'circle' : 'rect';
+function update(){
+  if(pressing){
+    const elapsed=(performance.now()-pressStart)/1000;
+    const intensity=intensityCurve(elapsed);
+    const bounds=mode==='wakppu'?'circle':'rect';
+    const lx=pressX-cx,ly=pressY-cy;
 
-    // auto-release at 2 seconds
-    if (elapsed >= 2.0) { pressing = false; tSX = 1; tSY = 1; }
+    if(elapsed>=2.0){pressing=false;tSX=1;tSY=1;}
 
-    // trigger effects when intensity crosses thresholds
-    if (intensity > nextCrackThreshold) {
-      const force = intensity - lastCrackIntensity;
-      lastCrackIntensity = intensity;
+    if(intensity>nextCrackThreshold){
+      const force=intensity-lastCrackIntensity;
+      lastCrackIntensity=intensity;
 
-      if (waxLayers > 0) {
-        // wax crack
-        const crackCount = 2 + Math.floor(force * 5);
-        spawnCracks(pressX, pressY, crackCount, bounds);
-        playCrack(force * 2);
+      if(waxLayers>0){
+        const crackCount=2+Math.floor(force*5);
+        spawnCracks(lx,ly,crackCount,bounds);
+        playCrack(force*2);
       }
 
-      // always dent/squish the base material
-      spawnDent(pressX, pressY);
-      spawnCrumbs(pressX, pressY, 2 + Math.floor(force * 6));
-      if (waxLayers === 0) playSquish(force * 3);
+      spawnDent(lx,ly);
+      spawnCrumbs(pressX,pressY,2+Math.floor(force*6));
+      if(waxLayers===0)playSquish(force*3);
 
-      shakeX += (Math.random() - 0.5) * 6 * intensity;
-      shakeY += (Math.random() - 0.5) * 6 * intensity;
-      tSX = 1 + intensity * 0.08;
-      tSY = 1 - intensity * 0.06;
+      shakeX+=(Math.random()-0.5)*6*intensity;
+      shakeY+=(Math.random()-0.5)*6*intensity;
+      tSX=1+intensity*0.08;
+      tSY=1-intensity*0.06;
 
-      // next threshold: gets closer together as intensity grows (steep curve)
-      nextCrackThreshold = intensity + 0.08 * (1 - intensity * 0.5);
+      nextCrackThreshold=intensity+0.08*(1-intensity*0.5);
     }
-
-    // destroy check
-    const hasWax = waxLayers > 0;
-    if (hasWax && totalCracks > destroyThreshold()) destroyObj();
-    if (!hasWax && totalDamage >= 1) destroyObj();
   }
 
-  scaleX += (tSX - scaleX) * 0.2; scaleY += (tSY - scaleY) * 0.2;
-  if (!pressing) { tSX = 1; tSY = 1; }
-  shakeX *= 0.8; shakeY *= 0.8;
+  scaleX+=(tSX-scaleX)*0.2;scaleY+=(tSY-scaleY)*0.2;
+  if(!pressing){tSX=1;tSY=1;}
+  shakeX*=0.8;shakeY*=0.8;
 
-  fragments.forEach(f => { f.x += f.vx; f.y += f.vy; f.vy += 0.22; f.rot += f.rotSpd; f.alpha -= 0.01; });
-  fragments = fragments.filter(f => f.alpha > 0);
-  crumbs.forEach(f => { f.x += f.vx; f.y += f.vy; f.vy += 0.18; f.rot += f.rotSpd; f.alpha -= 0.012; });
-  crumbs = crumbs.filter(f => f.alpha > 0);
+  crumbs.forEach(f=>{f.x+=f.vx;f.y+=f.vy;f.vy+=0.18;f.rot+=f.rotSpd;f.alpha-=0.012;});
+  crumbs=crumbs.filter(f=>f.alpha>0);
 }
 
 // ============ DRAW HELPERS ============
-function drawCracks() {
-  const now = performance.now();
-  cracks.forEach(crack => {
-    const age = now - crack.appear;
-    if (age < 0) return;
-    const show = Math.ceil(crack.points.length * Math.min(1, age / 50));
-    if (show < 2) return;
-    ctx.beginPath(); ctx.moveTo(crack.points[0].x, crack.points[0].y);
-    for (let i = 1; i < show; i++) ctx.lineTo(crack.points[i].x, crack.points[i].y);
-    ctx.strokeStyle = 'rgba(50,30,15,0.75)'; ctx.lineWidth = crack.width;
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(crack.points[0].x, crack.points[0].y);
-    for (let i = 1; i < show; i++) ctx.lineTo(crack.points[i].x, crack.points[i].y);
-    ctx.strokeStyle = 'rgba(180,215,140,0.3)'; ctx.lineWidth = crack.width * 0.4; ctx.stroke();
+function drawCracks(){
+  const now=performance.now();
+  cracks.forEach(crack=>{
+    const age=now-crack.appear;
+    if(age<0)return;
+    const show=Math.ceil(crack.points.length*Math.min(1,age/50));
+    if(show<2)return;
+    ctx.beginPath();ctx.moveTo(crack.points[0].x,crack.points[0].y);
+    for(let i=1;i<show;i++)ctx.lineTo(crack.points[i].x,crack.points[i].y);
+    ctx.strokeStyle='rgba(50,30,15,0.75)';ctx.lineWidth=crack.width;
+    ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();
+    ctx.beginPath();ctx.moveTo(crack.points[0].x,crack.points[0].y);
+    for(let i=1;i<show;i++)ctx.lineTo(crack.points[i].x,crack.points[i].y);
+    ctx.strokeStyle='rgba(180,215,140,0.3)';ctx.lineWidth=crack.width*0.4;ctx.stroke();
   });
 }
 
-function drawDents() {
-  dents.forEach(d => {
-    const age = performance.now() - d.appear;
-    const reveal = Math.min(1, age / 80);
-    ctx.beginPath(); ctx.arc(d.x, d.y, d.radius * reveal, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(0,0,0,${d.depth * 0.12 * reveal})`; ctx.fill();
+function drawDents(){
+  dents.forEach(d=>{
+    const age=performance.now()-d.appear;
+    const reveal=Math.min(1,age/80);
+    ctx.beginPath();ctx.arc(d.x,d.y,d.radius*reveal,0,Math.PI*2);
+    ctx.fillStyle=`rgba(0,0,0,${d.depth*0.12*reveal})`;ctx.fill();
   });
 }
 
-// wax whiteness overlay
-function waxWhiteness() { return waxLayers > 0 ? Math.min(0.55, waxLayers * 0.06) : 0; }
+function waxWhiteness(){return waxLayers>0?Math.min(0.55,waxLayers*0.06):0;}
 
-function drawFragments(baseHue) {
-  fragments.forEach(f => {
-    ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.rot); ctx.globalAlpha = f.alpha;
-    ctx.beginPath(); f.pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x * f.size, p.y * f.size) : ctx.lineTo(p.x * f.size, p.y * f.size));
-    ctx.closePath();
-    const w = waxWhiteness();
-    if (w > 0 && Math.random() < 0.5) ctx.fillStyle = `rgba(255,255,255,${0.5 + w})`;
-    else ctx.fillStyle = `hsl(${f.hue},38%,72%)`;
-    ctx.fill(); ctx.globalAlpha = 1; ctx.restore();
-  });
-  crumbs.forEach(f => {
-    ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.rot); ctx.globalAlpha = f.alpha;
-    ctx.beginPath(); ctx.arc(0, 0, f.size, 0, Math.PI * 2);
-    const w = waxWhiteness();
-    ctx.fillStyle = w > 0.1 ? `rgba(255,255,255,${0.4 + w})` : (mode === 'butter' ? '#f0dfa0' : `hsl(270,30%,72%)`);
-    ctx.fill(); ctx.globalAlpha = 1; ctx.restore();
+function drawCrumbs(){
+  crumbs.forEach(f=>{
+    ctx.save();ctx.translate(f.x,f.y);ctx.rotate(f.rot);ctx.globalAlpha=f.alpha;
+    ctx.beginPath();ctx.arc(0,0,f.size,0,Math.PI*2);
+    const w=waxWhiteness();
+    ctx.fillStyle=w>0.1?`rgba(255,255,255,${0.4+w})`:(mode==='butter'?'#f0dfa0':'hsl(270,30%,72%)');
+    ctx.fill();ctx.globalAlpha=1;ctx.restore();
   });
 }
 
 // ============ DRAW WAKPPU ============
-function drawWakppu() {
-  const R = getR();
-  ctx.save(); ctx.translate(cx + shakeX, cy + shakeY); ctx.scale(scaleX, scaleY);
+function drawWakppu(){
+  const R=getR();
+  ctx.save();ctx.translate(cx+shakeX,cy+shakeY);ctx.scale(scaleX,scaleY);
 
-  ctx.beginPath(); ctx.ellipse(0, R * 0.88, R * 0.55, R * 0.08, 0, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(0,0,0,0.07)'; ctx.fill();
+  ctx.beginPath();ctx.ellipse(0,R*0.88,R*0.55,R*0.08,0,0,Math.PI*2);
+  ctx.fillStyle='rgba(0,0,0,0.07)';ctx.fill();
 
-  if (!destroyed) {
-    ctx.save(); ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.clip();
+  ctx.save();ctx.beginPath();ctx.arc(0,0,R,0,Math.PI*2);ctx.clip();
 
-    // base ball color
-    const grad = ctx.createRadialGradient(-R * 0.3, -R * 0.3, 0, 0, 0, R * 1.1);
-    grad.addColorStop(0, 'hsl(270,45%,85%)'); grad.addColorStop(0.5, 'hsl(270,40%,75%)'); grad.addColorStop(1, 'hsl(285,35%,62%)');
-    ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fillStyle = grad; ctx.fill();
+  const grad=ctx.createRadialGradient(-R*0.3,-R*0.3,0,0,0,R*1.1);
+  grad.addColorStop(0,'hsl(270,45%,85%)');grad.addColorStop(0.5,'hsl(270,40%,75%)');grad.addColorStop(1,'hsl(285,35%,62%)');
+  ctx.beginPath();ctx.arc(0,0,R,0,Math.PI*2);ctx.fillStyle=grad;ctx.fill();
 
-    // wax whiteness overlay
-    const w = waxWhiteness();
-    if (w > 0) {
-      ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,255,255,${w})`; ctx.fill();
-    }
+  const w=waxWhiteness();
+  if(w>0){ctx.beginPath();ctx.arc(0,0,R,0,Math.PI*2);ctx.fillStyle=`rgba(255,255,255,${w})`;ctx.fill();}
 
-    drawDents();
-    drawCracks();
+  drawDents();
+  drawCracks();
 
-    // highlight
-    ctx.beginPath(); ctx.ellipse(-R * 0.22, -R * 0.38, R * 0.3, R * 0.13, -0.35, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fill();
-    ctx.beginPath(); ctx.ellipse(-R * 0.12, -R * 0.48, R * 0.1, R * 0.05, -0.3, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fill();
-    ctx.restore();
-  }
+  ctx.beginPath();ctx.ellipse(-R*0.22,-R*0.38,R*0.3,R*0.13,-0.35,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,0.3)';ctx.fill();
+  ctx.beginPath();ctx.ellipse(-R*0.12,-R*0.48,R*0.1,R*0.05,-0.3,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,0.5)';ctx.fill();
   ctx.restore();
-  drawFragments(270);
+
+  ctx.restore();
+  drawCrumbs();
 }
 
-// ============ DRAW BUTTER (top-down) ============
-function drawButter() {
-  const { bw, bh, r } = bGetSize();
-  ctx.save(); ctx.translate(cx + shakeX, cy + shakeY); ctx.scale(scaleX, scaleY);
+// ============ DRAW BUTTER (photo-based top-down) ============
+function drawButter(){
+  const{bw,bh,r}=bGetSize();
+  ctx.save();ctx.translate(cx+shakeX,cy+shakeY);ctx.scale(scaleX,scaleY);
 
-  function butterPath() {
-    const hw = bw / 2, hh = bh / 2;
+  function butterPath(){
+    const hw=bw/2,hh=bh/2;
     ctx.beginPath();
-    ctx.moveTo(-hw + r, -hh); ctx.lineTo(hw - r, -hh); ctx.arcTo(hw, -hh, hw, -hh + r, r);
-    ctx.lineTo(hw, hh - r); ctx.arcTo(hw, hh, hw - r, hh, r);
-    ctx.lineTo(-hw + r, hh); ctx.arcTo(-hw, hh, -hw, hh - r, r);
-    ctx.lineTo(-hw, -hh + r); ctx.arcTo(-hw, -hh, -hw + r, -hh, r); ctx.closePath();
+    ctx.moveTo(-hw+r,-hh);ctx.lineTo(hw-r,-hh);ctx.arcTo(hw,-hh,hw,-hh+r,r);
+    ctx.lineTo(hw,hh-r);ctx.arcTo(hw,hh,hw-r,hh,r);
+    ctx.lineTo(-hw+r,hh);ctx.arcTo(-hw,hh,-hw,hh-r,r);
+    ctx.lineTo(-hw,-hh+r);ctx.arcTo(-hw,-hh,-hw+r,-hh,r);ctx.closePath();
   }
 
   // shadow
-  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.1)'; ctx.shadowBlur = 15; ctx.shadowOffsetY = 5;
+  ctx.save();
+  ctx.shadowColor='rgba(0,0,0,0.12)';ctx.shadowBlur=20;ctx.shadowOffsetY=8;
+  butterPath();ctx.fillStyle='#f8ebb5';ctx.fill();
+  ctx.restore();
 
-  if (!destroyed) {
-    butterPath();
-    const bGrad = ctx.createLinearGradient(-bw/2, -bh/2, bw/2, bh/2);
-    bGrad.addColorStop(0, '#faf2c8'); bGrad.addColorStop(0.3, '#f8ebb5');
-    bGrad.addColorStop(0.7, '#f5e6a8'); bGrad.addColorStop(1, '#f0dfa0');
-    ctx.fillStyle = bGrad; ctx.fill();
-    ctx.restore(); // shadow
+  // clip to shape
+  ctx.save();butterPath();ctx.clip();
 
-    // wax whiteness
-    const w = waxWhiteness();
-    if (w > 0) { butterPath(); ctx.fillStyle = `rgba(255,255,255,${w})`; ctx.fill(); }
+  // draw butter photo if loaded
+  if(butterImg.complete && butterImg.naturalWidth>0){
+    const hw=bw/2,hh=bh/2;
+    ctx.drawImage(butterImg,-hw,-hh,bw,bh);
+  }else{
+    // fallback gradient
+    const hw=bw/2,hh=bh/2;
+    const bGrad=ctx.createLinearGradient(-hw,-hh,hw,hh);
+    bGrad.addColorStop(0,'#faf2c8');bGrad.addColorStop(0.3,'#f8ebb5');
+    bGrad.addColorStop(0.7,'#f5e6a8');bGrad.addColorStop(1,'#f0dfa0');
+    butterPath();ctx.fillStyle=bGrad;ctx.fill();
 
-    // border
-    butterPath(); ctx.strokeStyle = '#d4c478'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle='#5a8ad4';
+    ctx.font=`bold ${bw*0.06}px sans-serif`;ctx.fillText('4oz.',-hw*0.75,hh*0.15);
+    ctx.font=`${bw*0.035}px sans-serif`;ctx.fillText('NET WT. (113 G)',-hw*0.75,hh*0.42);
+    ctx.font=`${bw*0.045}px sans-serif`;ctx.fillText('SALTED',hw*0.08,-hh*0.25);
+    ctx.font=`bold ${bw*0.1}px sans-serif`;ctx.fillText('BUTTER',hw*0.08,hh*0.2);
+  }
 
-    // clip for cracks/dents
-    ctx.save(); butterPath(); ctx.clip();
-    drawDents();
-    drawCracks();
-    ctx.restore();
+  // wax whiteness
+  const w=waxWhiteness();
+  if(w>0){butterPath();ctx.fillStyle=`rgba(255,255,255,${w})`;ctx.fill();}
 
-    // label
-    const hw = bw / 2, hh = bh / 2;
-    ctx.fillStyle = '#5a8ad4'; ctx.font = `bold ${bw * 0.06}px sans-serif`;
-    ctx.fillText('4oz.', -hw * 0.75, hh * 0.15);
-    ctx.font = `${bw * 0.035}px sans-serif`;
-    ctx.fillText('NET WT. (113 G)', -hw * 0.75, hh * 0.42);
-    ctx.font = `${bw * 0.045}px sans-serif`;
-    ctx.fillText('SALTED', hw * 0.08, -hh * 0.25);
-    ctx.font = `bold ${bw * 0.1}px sans-serif`;
-    ctx.fillText('BUTTER', hw * 0.08, hh * 0.2);
+  drawDents();
+  drawCracks();
 
-    // highlight
-    ctx.beginPath(); ctx.ellipse(-hw * 0.3, -hh * 0.4, bw * 0.15, bh * 0.12, -0.2, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fill();
-  } else { ctx.restore(); }
+  ctx.restore(); // unclip
+
+  // border
+  butterPath();ctx.strokeStyle='rgba(180,160,100,0.3)';ctx.lineWidth=1;ctx.stroke();
 
   ctx.restore();
-  drawFragments(45);
+  drawCrumbs();
 }
 
 // ============ LOOP ============
-function loop() {
-  if (!mode) return;
+function loop(){
+  if(!mode)return;
   update();
-  ctx.fillStyle = '#f0ebe6'; ctx.fillRect(0, 0, W, H);
-  if (mode === 'wakppu') drawWakppu();
+  ctx.fillStyle='#f0ebe6';ctx.fillRect(0,0,W,H);
+  if(mode==='wakppu')drawWakppu();
   else drawButter();
   requestAnimationFrame(loop);
 }
 
 resize();
-window.addEventListener('resize', resize);
+window.addEventListener('resize',resize);
 </script>
 </body>
 </html>
