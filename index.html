@@ -39,11 +39,13 @@ const ctx = canvas.getContext('2d');
 const resetBtn = document.getElementById('resetBtn');
 
 let W, H, cx, cy, R;
-let pressing = false, pressX = 0, pressY = 0;
 let scaleX = 1, scaleY = 1, tSX = 1, tSY = 1;
 let shakeX = 0, shakeY = 0;
 let destroyed = false;
-let totalCrackLen = 0;
+let pressing = false, pressX = 0, pressY = 0;
+let pressStart = 0;
+let firstDone = false, secondDone = false;
+let totalCracks = 0;
 
 const BALL_HUE = 270;
 
@@ -56,10 +58,10 @@ function initAudio() {
 
 function playCrack(intensity) {
   if (!audioCtx) return;
-  const n = 2 + Math.floor(intensity * 6);
+  const n = 3 + Math.floor(intensity * 5);
   for (let i = 0; i < n; i++) {
     setTimeout(() => {
-      const dur = 0.02 + Math.random() * 0.05;
+      const dur = 0.015 + Math.random() * 0.04;
       const t = audioCtx.currentTime;
       const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * dur, audioCtx.sampleRate);
       const d = buf.getChannelData(0);
@@ -67,100 +69,104 @@ function playCrack(intensity) {
       const src = audioCtx.createBufferSource();
       src.buffer = buf;
       const hp = audioCtx.createBiquadFilter();
-      hp.type = 'highpass'; hp.frequency.value = 1000 + Math.random() * 3000;
+      hp.type = 'highpass'; hp.frequency.value = 1200 + Math.random() * 3000;
       const gain = audioCtx.createGain();
-      gain.gain.setValueAtTime(0.12 + intensity * 0.2, t);
+      gain.gain.setValueAtTime(0.15 + intensity * 0.25, t);
       gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
       src.connect(hp).connect(gain).connect(audioCtx.destination);
       src.start(t); src.stop(t + dur);
-    }, i * (10 + Math.random() * 30));
+    }, i * 8);
   }
 }
 
 function playBigCrunch() {
   if (!audioCtx) return;
-  for (let i = 0; i < 25; i++) {
-    setTimeout(() => playCrack(0.6 + Math.random() * 0.4), i * 15 + Math.random() * 20);
+  for (let i = 0; i < 30; i++) {
+    setTimeout(() => playCrack(0.5 + Math.random() * 0.5), i * 12);
   }
 }
 
-// --- Cracks ---
-let cracks = [];
+// --- Crack system ---
+let crackLines = [];
 let fragments = [];
 
-function spawnCrackTree(ox, oy, numBranches, maxDepth) {
-  const localX = ox - cx;
-  const localY = oy - cy;
+function makeCrackLine(startX, startY, angle) {
+  const points = [{ x: startX, y: startY }];
+  let curX = startX, curY = startY, curA = angle;
+  const stepLen = 6 + Math.random() * 4;
 
-  const distFromCenter = Math.sqrt(localX * localX + localY * localY);
-  if (distFromCenter > R * 1.1) return;
+  for (let i = 0; i < 200; i++) {
+    curA += (Math.random() - 0.5) * 0.6;
+    curX += Math.cos(curA) * stepLen;
+    curY += Math.sin(curA) * stepLen;
 
-  for (let b = 0; b < numBranches; b++) {
-    const baseAngle = Math.atan2(localY, localX) + (Math.random() - 0.5) * Math.PI * 1.6;
-    spawnBranch(localX, localY, baseAngle, maxDepth, 0, 0);
+    if (curX * curX + curY * curY >= R * R * 0.97) {
+      const norm = Math.sqrt(curX * curX + curY * curY);
+      curX = (curX / norm) * R * 0.98;
+      curY = (curY / norm) * R * 0.98;
+      points.push({ x: curX, y: curY });
+      break;
+    }
+    points.push({ x: curX, y: curY });
   }
+
+  return points;
 }
 
-function spawnBranch(sx, sy, angle, maxDepth, depth, delay) {
-  const segCount = 3 + Math.floor(Math.random() * 5);
-  let curX = sx, curY = sy;
-  let curAngle = angle;
+function spawnCracks(ox, oy, count) {
+  const lx = ox - cx, ly = oy - cy;
+  const numLines = count;
 
-  for (let i = 0; i < segCount; i++) {
-    curAngle += (Math.random() - 0.5) * 0.9;
-    const len = 8 + Math.random() * 18;
-    const ex = curX + Math.cos(curAngle) * len;
-    const ey = curY + Math.sin(curAngle) * len;
+  for (let i = 0; i < numLines; i++) {
+    const angle = (Math.PI * 2 / numLines) * i + (Math.random() - 0.5) * 0.5;
+    const pts = makeCrackLine(lx, ly, angle);
 
-    if (ex * ex + ey * ey > (R * 0.95) ** 2) break;
+    crackLines.push({
+      points: pts,
+      width: 1.5 + Math.random() * 1.5,
+      appear: performance.now(),
+    });
+    totalCracks++;
 
-    const seg = {
-      x1: curX, y1: curY, x2: ex, y2: ey,
-      progress: 0,
-      delay: delay + i * 0.04 + depth * 0.08,
-      width: Math.max(0.8, 2.5 - depth * 0.5),
-      spawned: false,
-      depth,
-    };
-    cracks.push(seg);
-    totalCrackLen += len;
-
-    curX = ex;
-    curY = ey;
-
-    if (depth < maxDepth && Math.random() < 0.4 - depth * 0.1) {
-      const branchAngle = curAngle + (Math.random() > 0.5 ? 1 : -1) * (0.4 + Math.random() * 0.8);
-      spawnBranch(curX, curY, branchAngle, maxDepth, depth + 1, delay + i * 0.04 + 0.05);
+    // one fork per line, sometimes
+    if (Math.random() < 0.5 && pts.length > 3) {
+      const forkIdx = 1 + Math.floor(Math.random() * Math.min(4, pts.length - 2));
+      const forkPt = pts[forkIdx];
+      const forkAngle = angle + (Math.random() > 0.5 ? 1 : -1) * (0.5 + Math.random() * 0.7);
+      const forkPts = makeCrackLine(forkPt.x, forkPt.y, forkAngle);
+      crackLines.push({
+        points: forkPts,
+        width: 1 + Math.random(),
+        appear: performance.now() + 30,
+      });
+      totalCracks++;
     }
   }
 }
 
-// --- Fragments for destruction ---
+// --- Fragments ---
 function spawnFragment(x, y) {
-  const angle = Math.atan2(y, x) + (Math.random() - 0.5) * 1.2;
-  const speed = 2 + Math.random() * 6;
-  const size = 6 + Math.random() * 16;
-  const pts = [];
+  const angle = Math.atan2(y, x) + (Math.random() - 0.5) * 1;
+  const speed = 2 + Math.random() * 5;
+  const size = 5 + Math.random() * 14;
   const n = 4 + Math.floor(Math.random() * 3);
+  const pts = [];
   for (let i = 0; i < n; i++) {
     const a = (Math.PI * 2 / n) * i + Math.random() * 0.5;
-    const r = 0.5 + Math.random() * 0.5;
-    pts.push({ x: Math.cos(a) * r, y: Math.sin(a) * r });
+    pts.push({ x: Math.cos(a) * (0.5 + Math.random() * 0.5), y: Math.sin(a) * (0.5 + Math.random() * 0.5) });
   }
   fragments.push({
     x: cx + x, y: cy + y,
-    vx: Math.cos(angle) * speed,
-    vy: Math.sin(angle) * speed - 2 - Math.random() * 3,
-    size, pts,
-    rot: Math.random() * Math.PI * 2,
-    rotSpd: (Math.random() - 0.5) * 0.15,
-    alpha: 1,
+    vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 2 - Math.random() * 3,
+    size, pts, rot: Math.random() * Math.PI * 2,
+    rotSpd: (Math.random() - 0.5) * 0.15, alpha: 1,
     hue: BALL_HUE + (Math.random() - 0.5) * 30,
   });
 }
 
 function destroyBall() {
   destroyed = true;
+  pressing = false;
   playBigCrunch();
   for (let i = 0; i < 50; i++) {
     const a = Math.random() * Math.PI * 2;
@@ -175,10 +181,6 @@ function getPos(e) {
   return { x: e.clientX, y: e.clientY };
 }
 
-let pressStartTime = 0;
-let lastCrackTime = 0;
-let firstCrackDone = false;
-
 function onPress(e) {
   e.preventDefault();
   const p = getPos(e);
@@ -186,20 +188,13 @@ function onPress(e) {
   if (dx * dx + dy * dy > (R * 1.3) ** 2 || destroyed) return;
   initAudio();
   pressing = true;
-  pressX = p.x;
-  pressY = p.y;
-  pressStartTime = performance.now();
-  firstCrackDone = false;
-  lastCrackTime = 0;
+  pressX = p.x; pressY = p.y;
+  pressStart = performance.now();
+  firstDone = false;
+  secondDone = false;
 }
 
-function onMove(e) {
-  e.preventDefault();
-  if (!pressing) return;
-  const p = getPos(e);
-  pressX = p.x;
-  pressY = p.y;
-}
+function onMove(e) { e.preventDefault(); }
 
 function onRelease(e) {
   if (e) e.preventDefault();
@@ -217,11 +212,8 @@ canvas.addEventListener('touchmove', onMove);
 canvas.addEventListener('touchend', onRelease);
 
 resetBtn.addEventListener('click', () => {
-  cracks = [];
-  fragments = [];
-  totalCrackLen = 0;
-  destroyed = false;
-  pressing = false;
+  crackLines = []; fragments = []; totalCracks = 0;
+  destroyed = false; pressing = false;
   scaleX = 1; scaleY = 1; tSX = 1; tSY = 1;
   shakeX = 0; shakeY = 0;
 });
@@ -230,62 +222,58 @@ resetBtn.addEventListener('click', () => {
 function resize() {
   W = canvas.width = window.innerWidth;
   H = canvas.height = window.innerHeight;
-  cx = W / 2;
-  cy = H / 2;
+  cx = W / 2; cy = H / 2;
   R = Math.min(W, H) * 0.22;
 }
 
 // --- Update ---
-let time = 0;
-function update(dt) {
-  time += dt;
-
+function update() {
   if (pressing && !destroyed) {
-    const elapsed = (performance.now() - pressStartTime) / 1000;
+    const elapsed = (performance.now() - pressStart) / 1000;
 
-    if (!firstCrackDone && elapsed > 0.01) {
-      firstCrackDone = true;
-      lastCrackTime = elapsed;
-      spawnCrackTree(pressX, pressY, 4 + Math.floor(Math.random() * 3), 2);
-      playCrack(0.6);
-      shakeX = (Math.random() - 0.5) * 6;
-      shakeY = (Math.random() - 0.5) * 6;
-      tSX = 1.06; tSY = 0.95;
+    // first crack: instant on press
+    if (!firstDone) {
+      firstDone = true;
+      const n = 3 + Math.floor(Math.random() * 2); // 3~4 lines
+      spawnCracks(pressX, pressY, n);
+      playCrack(0.8);
+      shakeX = (Math.random() - 0.5) * 8;
+      shakeY = (Math.random() - 0.5) * 8;
+      tSX = 1.07; tSY = 0.94;
     }
 
-    if (firstCrackDone && elapsed - lastCrackTime > 0.35) {
-      lastCrackTime = elapsed;
-      const intensity = Math.min(1, elapsed * 0.3);
-      spawnCrackTree(pressX, pressY, 2 + Math.floor(intensity * 3), 1 + Math.floor(intensity * 2));
-      playCrack(0.3 + intensity * 0.4);
-      shakeX += (Math.random() - 0.5) * 4 * intensity;
-      shakeY += (Math.random() - 0.5) * 4 * intensity;
-      tSX = 1 + intensity * 0.04;
-      tSY = 1 - intensity * 0.03;
+    // second crack: at ~0.5s if still pressing
+    if (!secondDone && elapsed > 0.5) {
+      secondDone = true;
+      const n = 2 + Math.floor(Math.random() * 2); // 2~3 more
+      spawnCracks(pressX, pressY, n);
+      playCrack(1.0);
+      shakeX += (Math.random() - 0.5) * 10;
+      shakeY += (Math.random() - 0.5) * 10;
+      tSX = 1.09; tSY = 0.92;
     }
 
-    const destroyThreshold = R * R * 3.5;
-    if (totalCrackLen > destroyThreshold) {
+    // auto-release at 1 second
+    if (elapsed >= 1.0) {
+      pressing = false;
+      tSX = 1; tSY = 1;
+    }
+
+    // destroy threshold
+    if (totalCracks > 25) {
       destroyBall();
     }
   }
 
-  cracks.forEach(seg => {
-    if (seg.delay > 0) { seg.delay -= dt; return; }
-    seg.progress = Math.min(1, seg.progress + dt * 6);
-  });
-
-  scaleX += (tSX - scaleX) * 0.12;
-  scaleY += (tSY - scaleY) * 0.12;
+  scaleX += (tSX - scaleX) * 0.2;
+  scaleY += (tSY - scaleY) * 0.2;
   if (!pressing) { tSX = 1; tSY = 1; }
-  shakeX *= 0.82;
-  shakeY *= 0.82;
+  shakeX *= 0.8;
+  shakeY *= 0.8;
 
   fragments.forEach(f => {
-    f.x += f.vx;
-    f.y += f.vy;
-    f.vy += 0.2;
-    f.rot += f.rotSpd;
+    f.x += f.vx; f.y += f.vy;
+    f.vy += 0.22; f.rot += f.rotSpd;
     f.alpha = Math.max(0, f.alpha - 0.01);
   });
   fragments = fragments.filter(f => f.alpha > 0);
@@ -304,7 +292,6 @@ function drawBall() {
   ctx.fill();
 
   if (!destroyed) {
-    // clip to ball
     ctx.save();
     ctx.beginPath();
     ctx.arc(0, 0, R, 0, Math.PI * 2);
@@ -320,34 +307,42 @@ function drawBall() {
     ctx.fillStyle = grad;
     ctx.fill();
 
-    // draw cracks with animated progress
-    cracks.forEach(seg => {
-      if (seg.progress <= 0) return;
-      const p = seg.progress;
-      const mx = seg.x1 + (seg.x2 - seg.x1) * p;
-      const my = seg.y1 + (seg.y2 - seg.y1) * p;
+    // crack lines - draw instantly (no animation)
+    const now = performance.now();
+    crackLines.forEach(crack => {
+      const age = now - crack.appear;
+      if (age < 0) return;
 
-      // dark crack line
+      // fast reveal: full line appears within 50ms
+      const reveal = Math.min(1, age / 50);
+      const showCount = Math.ceil(crack.points.length * reveal);
+
+      if (showCount < 2) return;
+
+      // dark crack
       ctx.beginPath();
-      ctx.moveTo(seg.x1, seg.y1);
-      ctx.lineTo(mx, my);
-      ctx.strokeStyle = `rgba(55, 35, 20, ${0.6 + seg.width * 0.1})`;
-      ctx.lineWidth = seg.width;
+      ctx.moveTo(crack.points[0].x, crack.points[0].y);
+      for (let i = 1; i < showCount; i++) {
+        ctx.lineTo(crack.points[i].x, crack.points[i].y);
+      }
+      ctx.strokeStyle = 'rgba(50, 30, 15, 0.75)';
+      ctx.lineWidth = crack.width;
       ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
       ctx.stroke();
 
-      // inner green/light color
-      if (seg.width > 1) {
-        ctx.beginPath();
-        ctx.moveTo(seg.x1, seg.y1);
-        ctx.lineTo(mx, my);
-        ctx.strokeStyle = `rgba(170, 210, 130, 0.35)`;
-        ctx.lineWidth = seg.width * 0.4;
-        ctx.stroke();
+      // inner lighter line
+      ctx.beginPath();
+      ctx.moveTo(crack.points[0].x, crack.points[0].y);
+      for (let i = 1; i < showCount; i++) {
+        ctx.lineTo(crack.points[i].x, crack.points[i].y);
       }
+      ctx.strokeStyle = 'rgba(180, 215, 140, 0.3)';
+      ctx.lineWidth = crack.width * 0.4;
+      ctx.stroke();
     });
 
-    // highlight (on top)
+    // highlight
     ctx.beginPath();
     ctx.ellipse(-R * 0.22, -R * 0.38, R * 0.3, R * 0.13, -0.35, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(255,255,255,0.3)';
@@ -357,7 +352,7 @@ function drawBall() {
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
     ctx.fill();
 
-    ctx.restore(); // unclip
+    ctx.restore();
   }
 
   ctx.restore();
@@ -371,13 +366,12 @@ function drawFragments() {
     ctx.globalAlpha = f.alpha;
     ctx.beginPath();
     f.pts.forEach((p, i) => {
-      const x = p.x * f.size, y = p.y * f.size;
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      i === 0 ? ctx.moveTo(p.x * f.size, p.y * f.size) : ctx.lineTo(p.x * f.size, p.y * f.size);
     });
     ctx.closePath();
     ctx.fillStyle = `hsl(${f.hue}, 38%, 72%)`;
     ctx.fill();
-    ctx.strokeStyle = 'rgba(55,35,20,0.25)';
+    ctx.strokeStyle = 'rgba(50,30,15,0.2)';
     ctx.lineWidth = 0.5;
     ctx.stroke();
     ctx.globalAlpha = 1;
@@ -385,17 +379,10 @@ function drawFragments() {
   });
 }
 
-function drawBg() {
+function loop() {
+  update();
   ctx.fillStyle = '#f0ebe6';
   ctx.fillRect(0, 0, W, H);
-}
-
-let lastTime = performance.now();
-function loop(now) {
-  const dt = Math.min(0.05, (now - lastTime) / 1000);
-  lastTime = now;
-  update(dt);
-  drawBg();
   drawFragments();
   drawBall();
   requestAnimationFrame(loop);
